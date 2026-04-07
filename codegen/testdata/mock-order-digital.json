@@ -1,0 +1,4 @@
+{
+  "order-service": { "id": "ORD-001", "type": "digital", "productId": "SW-100" },
+  "download-service": { "licenseKey": "XXXX-YYYY-ZZZZ", "downloadUrl": "https://cdn.example.com/sw100" }
+}

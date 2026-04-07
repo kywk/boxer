@@ -1,0 +1,5 @@
+{
+  "user-service": { "id": "42", "name": "Alice", "avatar": "https://example.com/alice.jpg" },
+  "order-service": { "orders": [{ "id": "ORD-001", "total": 1500 }] },
+  "notification-service": { "notifications": [{ "id": "N1", "msg": "訂單已出貨" }] }
+}
