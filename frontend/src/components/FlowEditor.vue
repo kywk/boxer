@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { VueFlow, Panel, useVueFlow, type Node } from '@vue-flow/core'
 import { MiniMap } from '@vue-flow/minimap'
 import { Controls } from '@vue-flow/controls'
@@ -33,7 +33,7 @@ const nodeTypes = {
   'response':   ResponseNode,
 } as any
 
-const { screenToFlowCoordinate, updateNodeData, addNodes } = useVueFlow()
+const { screenToFlowCoordinate, updateNodeData, addNodes, getNodes } = useVueFlow()
 const { onConnect } = useFlowValidator()
 const { vueFlowToIR } = useIRExport()
 const { loadFromJSON } = useIRImport()
@@ -46,13 +46,14 @@ const showTestPanel = ref(false)
 const mockParamsJson = ref('{}')
 const mockUpstreamsJson = ref('{}')
 
-// ── Node CSS class based on execution status ─────────
+// ── Node execution status → CSS class ────────────────
 
-function nodeClass(node: Node): string {
-  const nr = nodeResults.value.get(node.id)
-  if (!nr) return ''
-  return `exec-${nr.status}`
-}
+watch(nodeResults, (results) => {
+  for (const node of getNodes.value) {
+    const nr = results.get(node.id)
+    node.class = nr ? `exec-${nr.status}` : ''
+  }
+}, { deep: true })
 
 // ── Drag & Drop ──────────────────────────────────────
 
@@ -133,7 +134,6 @@ const selectedNodeResult = computed(() => {
     <div class="flow-area">
       <VueFlow
         :node-types="nodeTypes"
-        :class-func="nodeClass"
         @connect="onConnect"
         @node-click="onNodeClick"
         @pane-click="onPaneClick"
@@ -153,8 +153,6 @@ const selectedNodeResult = computed(() => {
             <button @click="handleImport">Import IR</button>
           </div>
         </Panel>
-
-        <!-- 節點執行狀態由 :class-func 處理 -->
 
         <MiniMap />
         <Controls />
@@ -204,6 +202,7 @@ const selectedNodeResult = computed(() => {
     <ConfigPanel
       v-if="!showTestPanel && selectedNode"
       :node="selectedNode"
+      :node-result="selectedNodeResult"
       @update="onConfigUpdate"
     />
   </div>
