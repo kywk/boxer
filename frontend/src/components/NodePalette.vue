@@ -4,6 +4,7 @@ import { NODE_TYPES, type NodeType } from '@/ir/schema'
 const nodeLabels: Record<NodeType, string> = {
   'http-call':  'HTTP Call',
   'condition':  'Condition',
+  'switch':     'Switch',
   'transform':  'Transform',
   'fork':       'Fork',
   'join':       'Join',
@@ -14,6 +15,7 @@ const nodeLabels: Record<NodeType, string> = {
 const nodeColors: Record<NodeType, string> = {
   'http-call':  '#3b82f6',
   'condition':  '#f59e0b',
+  'switch':     '#d946ef',
   'transform':  '#8b5cf6',
   'fork':       '#06b6d4',
   'join':       '#14b8a6',

@@ -42,6 +42,16 @@ const ConditionNodeSchema = z.object({
   }),
 })
 
+const SwitchNodeSchema = z.object({
+  id:   z.string(),
+  type: z.literal('switch'),
+  config: z.object({
+    expression: z.string(),             // JSONata 表達式，求值結果用來匹配 cases
+    cases:      z.array(z.string()),    // 匹配值列表，對應 sourceHandle = "case:0", "case:1", ...
+    hasDefault: z.boolean().default(true), // 是否有 default 分支，sourceHandle = "default"
+  }),
+})
+
 const TransformNodeSchema = z.object({
   id:   z.string(),
   type: z.literal('transform'),
@@ -96,6 +106,7 @@ const ResponseNodeSchema = z.object({
 export const IRNodeSchema = z.discriminatedUnion('type', [
   HttpCallNodeSchema,
   ConditionNodeSchema,
+  SwitchNodeSchema,
   TransformNodeSchema,
   ForkNodeSchema,
   JoinNodeSchema,
@@ -139,6 +150,7 @@ export type Upstream  = z.infer<typeof UpstreamSchema>
 // 個別節點型別（方便 switch narrowing）
 export type HttpCallNode  = z.infer<typeof HttpCallNodeSchema>
 export type ConditionNode = z.infer<typeof ConditionNodeSchema>
+export type SwitchNode   = z.infer<typeof SwitchNodeSchema>
 export type TransformNode = z.infer<typeof TransformNodeSchema>
 export type ForkNode      = z.infer<typeof ForkNodeSchema>
 export type JoinNode      = z.infer<typeof JoinNodeSchema>
@@ -147,7 +159,7 @@ export type ResponseNode  = z.infer<typeof ResponseNodeSchema>
 
 // 節點類型常數
 export const NODE_TYPES = [
-  'http-call', 'condition', 'transform',
+  'http-call', 'condition', 'switch', 'transform',
   'fork', 'join', 'sub-flow', 'response',
 ] as const
 

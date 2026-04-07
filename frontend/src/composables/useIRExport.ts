@@ -27,6 +27,8 @@ export function useIRExport() {
           }
         case 'condition':
           return { ...base, config: { expression: d.expression } }
+        case 'switch':
+          return { ...base, config: { expression: d.expression, cases: d.cases ?? [], hasDefault: d.hasDefault !== false } }
         case 'transform':
           return { ...base, outputVar: d.outputVar, config: { engine: d.engine ?? 'jsonata', expression: d.expression } }
         case 'fork':

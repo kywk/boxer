@@ -17,6 +17,11 @@ const fields = computed(() => {
       ]
     case 'condition':
       return [{ key: 'expression', label: 'Expression (JSONata)', type: 'textarea' }]
+    case 'switch':
+      return [
+        { key: 'expression', label: 'Expression (JSONata)', type: 'textarea' },
+        { key: 'cases', label: 'Cases (comma-separated)', type: 'text' },
+      ]
     case 'transform':
       return [
         { key: 'expression', label: 'Expression', type: 'textarea' },

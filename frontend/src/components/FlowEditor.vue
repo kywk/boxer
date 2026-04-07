@@ -8,6 +8,7 @@ import { nanoid } from 'nanoid'
 
 import HttpCallNode from './nodes/HttpCallNode.vue'
 import ConditionNode from './nodes/ConditionNode.vue'
+import SwitchNode from './nodes/SwitchNode.vue'
 import TransformNode from './nodes/TransformNode.vue'
 import ForkNode from './nodes/ForkNode.vue'
 import JoinNode from './nodes/JoinNode.vue'
@@ -23,6 +24,7 @@ import { useIRImport } from '@/composables/useIRImport'
 const nodeTypes = {
   'http-call':  HttpCallNode,
   'condition':  ConditionNode,
+  'switch':     SwitchNode,
   'transform':  TransformNode,
   'fork':       ForkNode,
   'join':       JoinNode,

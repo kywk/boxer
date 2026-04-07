@@ -2,12 +2,13 @@
 import { useVueFlow, type Connection } from '@vue-flow/core'
 
 const ALLOWED_CONNECTIONS: Record<string, string[]> = {
-  'http-call':  ['condition', 'transform', 'join', 'response', 'fork'],
+  'http-call':  ['condition', 'switch', 'transform', 'join', 'response', 'fork'],
   'condition':  ['http-call', 'transform', 'fork', 'join', 'response', 'sub-flow'],
-  'transform':  ['condition', 'join', 'response', 'fork'],
-  'fork':       ['http-call', 'transform', 'condition', 'sub-flow'],
-  'join':       ['transform', 'condition', 'response', 'fork'],
-  'sub-flow':   ['condition', 'transform', 'join', 'response', 'fork'],
+  'switch':     ['http-call', 'transform', 'fork', 'join', 'response', 'sub-flow'],
+  'transform':  ['condition', 'switch', 'join', 'response', 'fork'],
+  'fork':       ['http-call', 'transform', 'condition', 'switch', 'sub-flow'],
+  'join':       ['transform', 'condition', 'switch', 'response', 'fork'],
+  'sub-flow':   ['condition', 'switch', 'transform', 'join', 'response', 'fork'],
   'response':   [],
 }
 
