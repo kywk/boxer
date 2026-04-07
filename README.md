@@ -102,7 +102,8 @@ boxer/
 - [x] Phase 1 — IR Schema + Vue Flow 編輯器 + 瀏覽器端執行器
 - [x] Phase 2 — Go Codegen CLI + E2E demo server
 - [x] Phase 3 — Sub-flow 展開 + 並行 fork + retry/fallback
-- [ ] Phase 4 — ConfigPanel 完整表單 / 執行結果視覺化 / Kong Plugin Lua codegen / 部署整合
+- [x] Phase 4 — ConfigPanel 完整表單 / 執行結果視覺化 / Kong Plugin Lua codegen
+- [ ] Phase 5 — codegen HTTP service / Kong 部署整合（decK）/ circuit breaker / upstream provider 擴充
 
 ## 設計決策
 

@@ -1169,16 +1169,27 @@ Phase 3（API Composition）✅ 2026-04-07
   │   ├── Go codegen: 分支邏輯 inline 進 errgroup goroutine
   │   └── 前端執行器: Promise.all / race / allSettled
   └── http-call retry（maxAttempts + delay）+ fallback（default-value / skip / error）
+
+Phase 4（完整功能）✅ 2026-04-08
+  ├── ConfigPanel 完整表單
+  │   ├── 所有 8 種節點的完整欄位（含 upstream provider/url）
+  │   ├── 條件式欄位顯示（retry 開關、custom expression）
+  │   ├── Hints tooltip、checkbox toggle
+  │   └── 內嵌執行結果顯示（output + duration + error）
+  ├── 執行結果視覺化
+  │   ├── 節點 CSS class: exec-success / exec-error / exec-running（pulse 動畫）
+  │   └── watch nodeResults → 即時更新節點外觀
+  └── Kong Plugin Lua codegen（targets/kong/generator.go）
+      ├── function-per-node + dispatcher 模式
+      ├── fork: ngx.thread.spawn/wait 並行
+      ├── JSONata 全 runtime（resty.jsonata）
+      └── CLI: -target kong 可用
 ```
 
 ### 待開發
 
 ```
-Phase 4（完整功能 + 平台化）
-  ├── ConfigPanel 完整表單（含 JSONata 表達式編輯器）
-  ├── 執行結果視覺化（底部 output panel + 完整 trace）
-  ├── Kong Plugin Lua 生成（function-per-node，JSONata 全 runtime）
-  │   └── 驗證 luajit-jsonata 在 OpenResty 環境的相容性
+Phase 5（部署整合 + 進階功能）
   ├── codegen HTTP service（多租戶、cache）
   ├── Kong 自動部署整合（decK + Admin API 選項）
   ├── circuit breaker
