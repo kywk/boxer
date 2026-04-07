@@ -1137,35 +1137,48 @@ Response:
 
 ---
 
-## 十二、開發優先順序建議
+## 十二、開發進度與規劃
+
+### 已完成
 
 ```
-Phase 1（MVP，可手動測試）
-  ├── IR Schema 定義（Zod）— 含 fork/join/sub-flow 節點型別
-  ├── 基礎 Vue Flow 編輯器（7 種節點 + 連線驗證）
-  ├── vueFlowToIR() + irToVueFlow()（序列化往返）
-  └── 瀏覽器端測試執行器（mock upstream，串行執行）
+Phase 1（MVP）✅ 2026-04-07
+  ├── IR Schema 定義（Zod）— 8 種節點（含 switch）
+  ├── Vue Flow 編輯器（8 種節點 + 連線驗證 + 拖拉 + ConfigPanel）
+  ├── vueFlowToIR() + irToVueFlow()（序列化往返 + 自動佈局）
+  └── 瀏覽器端測試執行器（mock upstream + 執行 trace）
 
-Phase 2（Go Codegen — 優先驗證 IR 設計）
-  ├── Go codegen CLI 工具（核心邏輯抽 codegen/core/ package）
-  ├── Go handler 生成（jsonata-go runtime）
-  │   ├── http-call / condition / transform / response
-  │   ├── fork/join（errgroup 並行）
-  │   └── fallback 機制
+Phase 2（Go Codegen）✅ 2026-04-07
+  ├── Go codegen CLI（codegen/cmd/main.go）
+  │   └── gateway-codegen -input flow.json [-target golang] [-output handler.go]
+  ├── Go handler 生成（codegen/targets/golang/generator.go）
+  │   ├── 8 種節點全支援（含 switch 多路分支）
+  │   ├── 智慧 label 生成（只有 goto 目標才有 label）
+  │   ├── fork/join — errgroup 真正並行 + mu.Lock 保護
+  │   └── JSONata 表達式 runtime evaluate（jsonata-go）
   ├── codegen prerequisites 檢查（upstream 清單）
-  └── 端到端驗證：IR → Go handler → 可執行的 HTTP server
+  ├── runtime/upstream.go — MockUpstream + HTTPUpstream
+  └── demo/main.go — IR interpreter server（E2E 驗證通過）
 
-Phase 3（API Composition + Kong）
-  ├── sub-flow inline 展開（循環偵測 + 深度限制 + 展開後驗證）
+Phase 3（API Composition）✅ 2026-04-07
+  ├── sub-flow inline 展開（useSubFlowExpander.ts）
+  │   ├── 循環引用偵測 + 深度限制（5 層）
+  │   ├── Node ID / outputVar prefix 避免衝突
   │   └── resolve 順序：API → localStorage 草稿
-  ├── Kong Plugin Lua 生成（function-per-node，JSONata 全 runtime）
-  │   └── 驗證 luajit-jsonata 在 OpenResty 環境的相容性
-  ├── http-call retry 機制
-  └── 測試執行器支援並行分支
+  ├── fork 並行升級
+  │   ├── Go codegen: 分支邏輯 inline 進 errgroup goroutine
+  │   └── 前端執行器: Promise.all / race / allSettled
+  └── http-call retry（maxAttempts + delay）+ fallback（default-value / skip / error）
+```
 
+### 待開發
+
+```
 Phase 4（完整功能 + 平台化）
   ├── ConfigPanel 完整表單（含 JSONata 表達式編輯器）
   ├── 執行結果視覺化（底部 output panel + 完整 trace）
+  ├── Kong Plugin Lua 生成（function-per-node，JSONata 全 runtime）
+  │   └── 驗證 luajit-jsonata 在 OpenResty 環境的相容性
   ├── codegen HTTP service（多租戶、cache）
   ├── Kong 自動部署整合（decK + Admin API 選項）
   ├── circuit breaker

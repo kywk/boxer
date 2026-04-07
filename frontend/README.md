@@ -1,5 +1,23 @@
-# Vue 3 + TypeScript + Vite
+# Boxer Frontend
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Vue 3 + Vue Flow + TypeScript 視覺化流程編輯器。
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## 開發
+
+```bash
+npm install
+npm run dev      # → http://localhost:5173
+npm run build    # 生產建置
+```
+
+## 使用方式
+
+1. 從左側 Node Palette 拖拉節點到畫布
+2. 連接節點（自動驗證連線合法性）
+3. 點擊節點在右側 ConfigPanel 編輯屬性
+4. 點擊 **▶ Test** 開啟測試面板
+   - 輸入 Mock Params 和 Mock Upstreams（JSON）
+   - 點擊 Run 執行流程
+   - 查看 Response 和 Trace
+5. 點擊 **Export IR** 匯出 IR JSON（複製到剪貼簿）
+6. 點擊 **Import IR** 貼入 IR JSON 載入流程
