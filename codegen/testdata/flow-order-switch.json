@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "id": "flow-order-switch",
+  "name": "訂單類型路由",
+  "trigger": { "method": "POST", "path": "/api/order/:orderId" },
+  "nodes": [
+    { "id": "n1", "type": "http-call", "config": { "upstream": { "name": "order-service", "provider": "kong" }, "path": "/orders/${ctx.params.orderId}", "method": "GET", "timeout": 3000 }, "outputVar": "order" },
+    { "id": "n2", "type": "switch", "config": { "expression": "order.type", "cases": ["physical", "digital", "subscription"], "hasDefault": true } },
+    { "id": "n3", "type": "http-call", "config": { "upstream": { "name": "shipping-service", "provider": "kong" }, "path": "/ship", "method": "POST", "timeout": 5000 }, "outputVar": "result" },
+    { "id": "n4", "type": "http-call", "config": { "upstream": { "name": "download-service", "provider": "kong" }, "path": "/license", "method": "POST", "timeout": 3000 }, "outputVar": "result" },
+    { "id": "n5", "type": "http-call", "config": { "upstream": { "name": "subscription-service", "provider": "kong" }, "path": "/subscribe", "method": "POST", "timeout": 3000 }, "outputVar": "result" },
+    { "id": "n6", "type": "response", "config": { "statusCode": 400, "body": "{ 'error': 'unknown type' }" } },
+    { "id": "n7", "type": "response", "config": { "statusCode": 200, "body": "{ 'orderId': order.id, 'result': result }" } }
+  ],
+  "edges": [
+    { "source": "n1", "target": "n2" },
+    { "source": "n2", "target": "n3", "sourceHandle": "case:0" },
+    { "source": "n2", "target": "n4", "sourceHandle": "case:1" },
+    { "source": "n2", "target": "n5", "sourceHandle": "case:2" },
+    { "source": "n2", "target": "n6", "sourceHandle": "default" },
+    { "source": "n3", "target": "n7" },
+    { "source": "n4", "target": "n7" },
+    { "source": "n5", "target": "n7" }
+  ]
+}

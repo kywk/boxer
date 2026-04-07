@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "id": "flow-user-profile",
+  "name": "取得用戶資訊",
+  "trigger": { "method": "GET", "path": "/api/user/:userId" },
+  "nodes": [
+    { "id": "n1", "type": "http-call", "config": { "upstream": { "name": "user-service", "provider": "kong" }, "path": "/users/${ctx.params.userId}", "method": "GET", "timeout": 3000 }, "outputVar": "userInfo" },
+    { "id": "n2", "type": "condition", "config": { "expression": "userInfo.role = 'vip'" } },
+    { "id": "n3", "type": "transform", "config": { "engine": "jsonata", "expression": "{ 'user': userInfo, 'level': 'premium' }" }, "outputVar": "result" },
+    { "id": "n4", "type": "transform", "config": { "engine": "jsonata", "expression": "{ 'user': userInfo, 'level': 'standard' }" }, "outputVar": "result" },
+    { "id": "n5", "type": "response", "config": { "statusCode": 200, "body": "result" } }
+  ],
+  "edges": [
+    { "source": "n1", "target": "n2" },
+    { "source": "n2", "target": "n3", "sourceHandle": "true" },
+    { "source": "n2", "target": "n4", "sourceHandle": "false" },
+    { "source": "n3", "target": "n5" },
+    { "source": "n4", "target": "n5" }
+  ]
+}

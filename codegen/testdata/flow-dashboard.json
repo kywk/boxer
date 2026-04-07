@@ -1,0 +1,23 @@
+{
+  "version": "1.0",
+  "id": "flow-dashboard",
+  "name": "Dashboard 聚合",
+  "trigger": { "method": "GET", "path": "/api/dashboard/:userId" },
+  "nodes": [
+    { "id": "n1", "type": "fork", "config": { "strategy": "all" } },
+    { "id": "n2", "type": "http-call", "config": { "upstream": { "name": "user-service", "provider": "kong" }, "path": "/users/${ctx.params.userId}", "method": "GET", "timeout": 3000 }, "outputVar": "user" },
+    { "id": "n3", "type": "http-call", "config": { "upstream": { "name": "order-service", "provider": "kong" }, "path": "/orders?userId=${ctx.params.userId}", "method": "GET", "timeout": 3000 }, "outputVar": "orders" },
+    { "id": "n4", "type": "http-call", "config": { "upstream": { "name": "notification-service", "provider": "kong" }, "path": "/notifications?userId=${ctx.params.userId}", "method": "GET", "timeout": 3000 }, "outputVar": "notifications" },
+    { "id": "n5", "type": "join", "config": { "strategy": "merge" }, "outputVar": "dashboard" },
+    { "id": "n6", "type": "response", "config": { "statusCode": 200, "body": "dashboard" } }
+  ],
+  "edges": [
+    { "source": "n1", "target": "n2" },
+    { "source": "n1", "target": "n3" },
+    { "source": "n1", "target": "n4" },
+    { "source": "n2", "target": "n5" },
+    { "source": "n3", "target": "n5" },
+    { "source": "n4", "target": "n5" },
+    { "source": "n5", "target": "n6" }
+  ]
+}
