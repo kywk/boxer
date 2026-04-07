@@ -7,18 +7,34 @@ import (
 	"os"
 
 	"github.com/boxer/codegen/ir"
+	"github.com/boxer/codegen/server"
 	"github.com/boxer/codegen/targets/golang"
 	"github.com/boxer/codegen/targets/kong"
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "serve" {
+		// HTTP service mode
+		serveCmd := flag.NewFlagSet("serve", flag.ExitOnError)
+		addr := serveCmd.String("addr", ":8080", "listen address")
+		serveCmd.Parse(os.Args[2:])
+		if err := server.ListenAndServe(*addr); err != nil {
+			fatal("server: %v", err)
+		}
+		return
+	}
+
+	// CLI mode
 	target := flag.String("target", "golang", "codegen target: golang | kong")
 	input := flag.String("input", "", "input IR JSON file (required)")
 	output := flag.String("output", "", "output file (default: stdout)")
+	deck := flag.Bool("deck", false, "also generate kong.yaml (kong target only)")
 	flag.Parse()
 
 	if *input == "" {
-		fmt.Fprintln(os.Stderr, "usage: gateway-codegen -input flow.json [-target golang] [-output handler.go]")
+		fmt.Fprintln(os.Stderr, "usage:")
+		fmt.Fprintln(os.Stderr, "  gateway-codegen -input flow.json [-target golang|kong] [-output file]")
+		fmt.Fprintln(os.Stderr, "  gateway-codegen serve [-addr :8080]")
 		os.Exit(1)
 	}
 
@@ -54,6 +70,18 @@ func main() {
 		}
 		code = result.Code
 		prereqs = result.Prerequisites
+
+		if *deck {
+			deckYaml, err := kong.DeckConfig(&flow, result.Filename)
+			if err != nil {
+				fatal("deck config: %v", err)
+			}
+			deckFile := "kong.yaml"
+			if err := os.WriteFile(deckFile, []byte(deckYaml), 0644); err != nil {
+				fatal("write deck: %v", err)
+			}
+			fmt.Fprintf(os.Stderr, "wrote %s\n", deckFile)
+		}
 
 	default:
 		fatal("unknown target: %s", *target)

@@ -7,4 +7,9 @@ export default defineConfig({
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
+  server: {
+    proxy: {
+      '/api/codegen': 'http://localhost:8080',
+    },
+  },
 })

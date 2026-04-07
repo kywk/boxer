@@ -97,6 +97,39 @@ function handleExport() {
   }
 }
 
+const codegenResult = ref<{ code: string; filename: string; target: string } | null>(null)
+
+async function handleCodegen(target: string) {
+  try {
+    const ir = vueFlowToIR('flow-' + nanoid(6), 'Untitled Flow', { method: 'GET', path: '/api/example' })
+    const res = await fetch('/api/codegen', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ir, target }),
+    })
+    if (!res.ok) {
+      const err = await res.json()
+      alert('Codegen failed: ' + (err.error || res.statusText))
+      return
+    }
+    const data = await res.json()
+    codegenResult.value = { code: data.code, filename: data.filename, target }
+  } catch (e: any) {
+    alert('Codegen failed: ' + e.message)
+  }
+}
+
+function downloadCodegenResult() {
+  if (!codegenResult.value) return
+  const blob = new Blob([codegenResult.value.code], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = codegenResult.value.filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 const showImportModal = ref(false)
 const importJson = ref('')
 
@@ -159,6 +192,8 @@ const selectedNodeResult = computed(() => {
             </button>
             <button @click="handleExport">Export IR</button>
             <button @click="handleImport">Import IR</button>
+            <button @click="handleCodegen('golang')">⚙ Go</button>
+            <button @click="handleCodegen('kong')">⚙ Lua</button>
           </div>
         </Panel>
 
@@ -228,6 +263,18 @@ const selectedNodeResult = computed(() => {
         <div class="modal-actions">
           <button class="btn-cancel" @click="showImportModal = false">Cancel</button>
           <button class="btn-confirm" @click="confirmImport">Import</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Codegen Result Modal -->
+    <div v-if="codegenResult" class="modal-overlay" @click.self="codegenResult = null">
+      <div class="modal">
+        <div class="modal-title">{{ codegenResult.filename }}</div>
+        <pre class="import-textarea" style="overflow: auto; white-space: pre; cursor: text;">{{ codegenResult.code }}</pre>
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="codegenResult = null">Close</button>
+          <button class="btn-confirm" @click="downloadCodegenResult">Download</button>
         </div>
       </div>
     </div>
