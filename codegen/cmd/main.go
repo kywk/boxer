@@ -8,10 +8,11 @@ import (
 
 	"github.com/boxer/codegen/ir"
 	"github.com/boxer/codegen/targets/golang"
+	"github.com/boxer/codegen/targets/kong"
 )
 
 func main() {
-	target := flag.String("target", "golang", "codegen target: golang")
+	target := flag.String("target", "golang", "codegen target: golang | kong")
 	input := flag.String("input", "", "input IR JSON file (required)")
 	output := flag.String("output", "", "output file (default: stdout)")
 	flag.Parse()
@@ -31,29 +32,42 @@ func main() {
 		fatal("parse IR: %v", err)
 	}
 
+	var code string
+	var prereqs []string
+
 	switch *target {
 	case "golang":
 		result, err := golang.Generate(&flow)
 		if err != nil {
 			fatal("codegen: %v", err)
 		}
-
+		code = result.Code
+		prereqs = result.Prerequisites
 		for _, w := range result.Warnings {
 			fmt.Fprintf(os.Stderr, "warning: %s\n", w)
 		}
-		fmt.Fprintf(os.Stderr, "prerequisites: %v\n", result.Prerequisites)
 
-		if *output != "" {
-			if err := os.WriteFile(*output, []byte(result.Code), 0644); err != nil {
-				fatal("write output: %v", err)
-			}
-			fmt.Fprintf(os.Stderr, "wrote %s\n", *output)
-		} else {
-			fmt.Print(result.Code)
+	case "kong":
+		result, err := kong.Generate(&flow)
+		if err != nil {
+			fatal("codegen: %v", err)
 		}
+		code = result.Code
+		prereqs = result.Prerequisites
 
 	default:
 		fatal("unknown target: %s", *target)
+	}
+
+	fmt.Fprintf(os.Stderr, "prerequisites: %v\n", prereqs)
+
+	if *output != "" {
+		if err := os.WriteFile(*output, []byte(code), 0644); err != nil {
+			fatal("write output: %v", err)
+		}
+		fmt.Fprintf(os.Stderr, "wrote %s\n", *output)
+	} else {
+		fmt.Print(code)
 	}
 }
 
