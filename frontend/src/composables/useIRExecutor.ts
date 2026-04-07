@@ -170,17 +170,27 @@ export function useIRExecutor() {
       }
 
       case 'fork': {
-        // Phase 1: 簡化版 — 依序執行所有分支（Phase 3 改為 Promise.all）
+        // Phase 3: 真正並行執行所有分支
         const branches = ir.edges.filter(e => e.source === node.id).map(e => e.target)
-        for (const branchId of branches) {
+        const strategy = node.config.strategy ?? 'all'
+
+        const branchPromises = branches.map(async branchId => {
           const branchNode = nodeMap.get(branchId)
-          if (branchNode && branchNode.type === 'http-call') {
+          if (branchNode) {
             await executeNode(branchNode, ctx, ir, nodeMap, mockUpstreams)
           }
+        })
+
+        if (strategy === 'race') {
+          await Promise.race(branchPromises)
+        } else if (strategy === 'allSettled') {
+          await Promise.allSettled(branchPromises)
+        } else {
+          await Promise.all(branchPromises)
         }
-        // fork 完成後找 join
+
         const joinId = findDownstreamJoin(ir, node.id, branches)
-        return { done: false, nextId: joinId, output: { branches } }
+        return { done: false, nextId: joinId, output: { branches, strategy } }
       }
 
       case 'join': {

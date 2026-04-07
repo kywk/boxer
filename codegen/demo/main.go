@@ -168,9 +168,54 @@ func buildHandler(flow *ir.GatewayIR, up runtime.Upstream) http.HandlerFunc {
 					method = "GET"
 				}
 				timeout := time.Duration(node.GetInt("timeout", 3000)) * time.Millisecond
-				result, err := up.Call(node.GetUpstream().Name, path, method, timeout)
-				if err != nil {
-					http.Error(w, err.Error(), 502)
+
+				// Retry logic
+				maxAttempts := 1
+				retryDelay := time.Duration(0)
+				if retryRaw, ok := node.Config["retry"]; ok {
+					if rm, ok := retryRaw.(map[string]any); ok {
+						if v, ok := rm["maxAttempts"].(float64); ok {
+							maxAttempts = int(v)
+						}
+						if v, ok := rm["delay"].(float64); ok {
+							retryDelay = time.Duration(v) * time.Millisecond
+						}
+					}
+				}
+
+				var result any
+				var callErr error
+				for attempt := 0; attempt < maxAttempts; attempt++ {
+					result, callErr = up.Call(node.GetUpstream().Name, path, method, timeout)
+					if callErr == nil {
+						break
+					}
+					if attempt < maxAttempts-1 && retryDelay > 0 {
+						time.Sleep(retryDelay)
+					}
+				}
+
+				if callErr != nil {
+					// Fallback
+					fallbackStrategy := ""
+					if fbRaw, ok := node.Config["fallback"]; ok {
+						if fm, ok := fbRaw.(map[string]any); ok {
+							if s, ok := fm["strategy"].(string); ok {
+								fallbackStrategy = s
+							}
+							if fallbackStrategy == "default-value" {
+								vars[node.OutputVar] = fm["value"]
+								currentID = nextNode(currentID, "")
+								continue
+							}
+							if fallbackStrategy == "skip" {
+								vars[node.OutputVar] = nil
+								currentID = nextNode(currentID, "")
+								continue
+							}
+						}
+					}
+					http.Error(w, callErr.Error(), 502)
 					return
 				}
 				vars[node.OutputVar] = result

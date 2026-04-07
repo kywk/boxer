@@ -73,6 +73,7 @@ type templateNode struct {
 	Cases       []templateCase
 	DefaultID   string
 	Branches    []string
+	BranchNodes []templateNode // fork: resolved branch node data for inline codegen
 	JoinID      string
 	InputVars   []string
 	StatusCode  int
@@ -121,7 +122,22 @@ func buildTemplateData(flow *ir.GatewayIR, infos map[string]*core.NodeInfo, orde
 		}
 	}
 
+	// Track nodes that are inlined into fork goroutines (skip in main flow)
+	inlinedNodes := map[string]bool{}
+	for _, info := range infos {
+		if info.Node.Type == "fork" {
+			for _, bid := range info.Branches {
+				if bInfo, ok := infos[bid]; ok && bInfo.Node.Type == "http-call" {
+					inlinedNodes[bid] = true
+				}
+			}
+		}
+	}
+
 	for _, id := range order {
+		if inlinedNodes[id] {
+			continue
+		}
 		info := infos[id]
 		n := info.Node
 
@@ -173,6 +189,23 @@ func buildTemplateData(flow *ir.GatewayIR, infos map[string]*core.NodeInfo, orde
 			tn.Strategy = n.GetString("strategy")
 			if tn.Strategy == "" {
 				tn.Strategy = "all"
+			}
+			// Resolve branch nodes for inline codegen
+			for _, bid := range info.Branches {
+				if bInfo, ok := infos[bid]; ok {
+					bn := bInfo.Node
+					if bn.Type == "http-call" {
+						tn.BranchNodes = append(tn.BranchNodes, templateNode{
+							ID:        bn.ID,
+							Type:      bn.Type,
+							Upstream:  bn.GetUpstream(),
+							Path:      bn.GetString("path"),
+							Method:    orDefault(bn.GetString("method"), "GET"),
+							Timeout:   bn.GetInt("timeout", 3000),
+							OutputVar: bn.OutputVar,
+						})
+					}
+				}
 			}
 
 		case "join":
@@ -288,9 +321,15 @@ func Handle{{ .FuncName }}(up upstream) http.HandlerFunc {
 {{ end }}		// {{ .ID }}: fork ({{ .Strategy }})
 		{
 			g, _ := errgroup.WithContext(r.Context())
-{{- range .Branches }}
+{{- range .BranchNodes }}
 			g.Go(func() error {
-				// branch → {{ . }} (executed inline below)
+				// branch {{ .ID }}: http-call → {{ .Upstream.Name }}
+				path := interpolate(` + "`{{ .Path }}`" + `, params)
+				result, err := up.Call("{{ .Upstream.Name }}", path, "{{ .Method }}", {{ .Timeout }}*time.Millisecond)
+				if err != nil { return err }
+				mu.Lock()
+				vars["{{ .OutputVar }}"] = result
+				mu.Unlock()
 				return nil
 			})
 {{- end }}
@@ -370,6 +409,13 @@ var nonAlpha = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 
 func sanitize(s string) string {
 	return strings.ToLower(nonAlpha.ReplaceAllString(s, "_"))
+}
+
+func orDefault(s, def string) string {
+	if s == "" {
+		return def
+	}
+	return s
 }
 
 func toPascal(s string) string {
