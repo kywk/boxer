@@ -97,11 +97,19 @@ function handleExport() {
   }
 }
 
+const showImportModal = ref(false)
+const importJson = ref('')
+
 function handleImport() {
-  const input = prompt('Paste IR JSON:')
-  if (!input) return
+  showImportModal.value = true
+  importJson.value = ''
+}
+
+function confirmImport() {
+  if (!importJson.value.trim()) return
   try {
-    loadFromJSON(JSON.parse(input))
+    loadFromJSON(JSON.parse(importJson.value))
+    showImportModal.value = false
   } catch (e: any) {
     alert('Import failed: ' + e.message)
   }
@@ -205,6 +213,24 @@ const selectedNodeResult = computed(() => {
       :node-result="selectedNodeResult"
       @update="onConfigUpdate"
     />
+
+    <!-- Import IR Modal -->
+    <div v-if="showImportModal" class="modal-overlay" @click.self="showImportModal = false">
+      <div class="modal">
+        <div class="modal-title">Import IR JSON</div>
+        <textarea
+          v-model="importJson"
+          class="import-textarea"
+          placeholder="Paste IR JSON here..."
+          spellcheck="false"
+          autofocus
+        />
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="showImportModal = false">Cancel</button>
+          <button class="btn-confirm" @click="confirmImport">Import</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -214,6 +240,16 @@ const selectedNodeResult = computed(() => {
 .toolbar { display: flex; gap: 6px; }
 .toolbar button { padding: 6px 12px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 4px; background: white; cursor: pointer; }
 .toolbar button:hover { background: #f3f4f6; }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal { background: white; border-radius: 12px; padding: 20px; width: 640px; max-width: 90vw; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+.modal-title { font-weight: 600; font-size: 16px; margin-bottom: 12px; }
+.import-textarea { width: 100%; height: 400px; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-family: 'SF Mono', Monaco, monospace; font-size: 12px; line-height: 1.5; resize: vertical; box-sizing: border-box; }
+.import-textarea:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.btn-cancel { padding: 8px 16px; border: 1px solid #d1d5db; border-radius: 6px; background: white; cursor: pointer; font-size: 14px; }
+.btn-confirm { padding: 8px 16px; border: none; border-radius: 6px; background: #3b82f6; color: white; cursor: pointer; font-size: 14px; }
+.btn-confirm:hover { background: #2563eb; }
 
 .side-panel { width: 320px; border-left: 1px solid #e5e7eb; background: white; overflow-y: auto; padding: 12px; }
 .panel-section { margin-bottom: 16px; }
