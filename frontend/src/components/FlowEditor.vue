@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { VueFlow, Panel, useVueFlow, type Node } from '@vue-flow/core'
 import { MiniMap } from '@vue-flow/minimap'
 import { Controls } from '@vue-flow/controls'
@@ -20,6 +20,7 @@ import ConfigPanel from './ConfigPanel.vue'
 import { useFlowValidator } from '@/composables/useFlowValidator'
 import { useIRExport } from '@/composables/useIRExport'
 import { useIRImport } from '@/composables/useIRImport'
+import { useIRExecutor, type ExecutionResult } from '@/composables/useIRExecutor'
 
 const nodeTypes = {
   'http-call':  HttpCallNode,
@@ -36,8 +37,22 @@ const { screenToFlowCoordinate, updateNodeData, addNodes } = useVueFlow()
 const { onConnect } = useFlowValidator()
 const { vueFlowToIR } = useIRExport()
 const { loadFromJSON } = useIRImport()
+const { execute, isRunning, nodeResults } = useIRExecutor()
 
 const selectedNode = ref<Node | null>(null)
+const executionResult = ref<ExecutionResult | null>(null)
+const executionError = ref<string | null>(null)
+const showTestPanel = ref(false)
+const mockParamsJson = ref('{}')
+const mockUpstreamsJson = ref('{}')
+
+// ── Node CSS class based on execution status ─────────
+
+function nodeClass(node: Node): string {
+  const nr = nodeResults.value.get(node.id)
+  if (!nr) return ''
+  return `exec-${nr.status}`
+}
 
 // ── Drag & Drop ──────────────────────────────────────
 
@@ -49,7 +64,6 @@ function onDragOver(event: DragEvent) {
 function onDrop(event: DragEvent) {
   const type = event.dataTransfer?.getData('application/gateway-node-type')
   if (!type) return
-
   const position = screenToFlowCoordinate({ x: event.clientX, y: event.clientY })
   addNodes([{ id: nanoid(8), type, position, data: {} }])
 }
@@ -75,8 +89,6 @@ function handleExport() {
   try {
     const ir = vueFlowToIR('flow-' + nanoid(6), 'Untitled Flow', { method: 'GET', path: '/api/example' })
     const json = JSON.stringify(ir, null, 2)
-    console.log('Exported IR:', json)
-    // 複製到剪貼簿
     navigator.clipboard.writeText(json)
     alert('IR JSON copied to clipboard')
   } catch (e: any) {
@@ -93,6 +105,27 @@ function handleImport() {
     alert('Import failed: ' + e.message)
   }
 }
+
+// ── Test Execution ───────────────────────────────────
+
+async function handleRunTest() {
+  executionResult.value = null
+  executionError.value = null
+
+  try {
+    const ir = vueFlowToIR('flow-test', 'Test Run', { method: 'GET', path: '/test' })
+    const params = JSON.parse(mockParamsJson.value)
+    const upstreams = JSON.parse(mockUpstreamsJson.value)
+    executionResult.value = await execute(ir, params, upstreams)
+  } catch (e: any) {
+    executionError.value = e.message
+  }
+}
+
+const selectedNodeResult = computed(() => {
+  if (!selectedNode.value) return null
+  return nodeResults.value.get(selectedNode.value.id) ?? null
+})
 </script>
 
 <template>
@@ -100,6 +133,7 @@ function handleImport() {
     <div class="flow-area">
       <VueFlow
         :node-types="nodeTypes"
+        :class-func="nodeClass"
         @connect="onConnect"
         @node-click="onNodeClick"
         @pane-click="onPaneClick"
@@ -112,10 +146,15 @@ function handleImport() {
 
         <Panel position="top-right">
           <div class="toolbar">
+            <button @click="showTestPanel = !showTestPanel">
+              {{ showTestPanel ? '✕ Close Test' : '▶ Test' }}
+            </button>
             <button @click="handleExport">Export IR</button>
             <button @click="handleImport">Import IR</button>
           </div>
         </Panel>
+
+        <!-- 節點執行狀態由 :class-func 處理 -->
 
         <MiniMap />
         <Controls />
@@ -123,8 +162,47 @@ function handleImport() {
       </VueFlow>
     </div>
 
+    <!-- 右側面板：ConfigPanel 或 Test Panel -->
+    <div v-if="showTestPanel" class="side-panel">
+      <div class="panel-section">
+        <div class="panel-title">Test Execution</div>
+        <label>Mock Params (JSON)</label>
+        <textarea v-model="mockParamsJson" rows="3" class="mono-input" placeholder='{ "userId": "123" }' />
+        <label>Mock Upstreams (JSON)</label>
+        <textarea v-model="mockUpstreamsJson" rows="5" class="mono-input" placeholder='{ "user-service": { "id": "123", "name": "Alice" } }' />
+        <button class="run-btn" :disabled="isRunning" @click="handleRunTest">
+          {{ isRunning ? '⏳ Running...' : '▶ Run' }}
+        </button>
+      </div>
+
+      <!-- Execution Result -->
+      <div v-if="executionError" class="panel-section result-error">
+        <div class="panel-title">Error</div>
+        <pre>{{ executionError }}</pre>
+      </div>
+
+      <div v-if="executionResult" class="panel-section">
+        <div class="panel-title">Response: {{ executionResult.statusCode }}</div>
+        <pre class="result-json">{{ JSON.stringify(executionResult.body, null, 2) }}</pre>
+
+        <div class="panel-title" style="margin-top: 12px">Trace</div>
+        <div v-for="step in executionResult.trace" :key="step.nodeId" class="trace-item" :class="'trace-' + step.status">
+          <span class="trace-badge">{{ step.status === 'success' ? '✓' : step.status === 'error' ? '✗' : '⏳' }}</span>
+          <span class="trace-id">{{ step.nodeId }}</span>
+          <span class="trace-type">{{ step.nodeType }}</span>
+          <span class="trace-time">{{ step.duration }}ms</span>
+        </div>
+      </div>
+
+      <!-- Selected node output -->
+      <div v-if="selectedNodeResult" class="panel-section">
+        <div class="panel-title">Node Output: {{ selectedNodeResult.nodeId }}</div>
+        <pre class="result-json">{{ JSON.stringify(selectedNodeResult.output, null, 2) }}</pre>
+      </div>
+    </div>
+
     <ConfigPanel
-      v-if="selectedNode"
+      v-if="!showTestPanel && selectedNode"
       :node="selectedNode"
       @update="onConfigUpdate"
     />
@@ -137,4 +215,25 @@ function handleImport() {
 .toolbar { display: flex; gap: 6px; }
 .toolbar button { padding: 6px 12px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 4px; background: white; cursor: pointer; }
 .toolbar button:hover { background: #f3f4f6; }
+
+.side-panel { width: 320px; border-left: 1px solid #e5e7eb; background: white; overflow-y: auto; padding: 12px; }
+.panel-section { margin-bottom: 16px; }
+.panel-title { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+.panel-section label { display: block; font-size: 12px; color: #6b7280; margin: 8px 0 4px; }
+.mono-input { width: 100%; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 12px; font-family: monospace; resize: vertical; box-sizing: border-box; }
+.run-btn { margin-top: 10px; width: 100%; padding: 8px; font-size: 14px; font-weight: 600; border: none; border-radius: 6px; background: #3b82f6; color: white; cursor: pointer; }
+.run-btn:hover { background: #2563eb; }
+.run-btn:disabled { background: #93c5fd; cursor: not-allowed; }
+
+.result-json { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 4px; padding: 8px; font-size: 11px; font-family: monospace; overflow-x: auto; white-space: pre-wrap; word-break: break-all; max-height: 200px; overflow-y: auto; }
+.result-error { color: #dc2626; }
+.result-error pre { background: #fef2f2; border-color: #fecaca; padding: 8px; border-radius: 4px; font-size: 12px; white-space: pre-wrap; }
+
+.trace-item { display: flex; align-items: center; gap: 6px; padding: 4px 0; font-size: 12px; border-bottom: 1px solid #f3f4f6; }
+.trace-badge { width: 16px; text-align: center; }
+.trace-success .trace-badge { color: #22c55e; }
+.trace-error .trace-badge { color: #ef4444; }
+.trace-id { font-family: monospace; font-weight: 500; }
+.trace-type { color: #6b7280; flex: 1; }
+.trace-time { color: #9ca3af; font-size: 11px; }
 </style>
