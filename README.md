@@ -103,7 +103,7 @@ boxer/
 - [x] Phase 2 — Go Codegen CLI + E2E demo server
 - [x] Phase 3 — Sub-flow 展開 + 並行 fork + retry/fallback
 - [x] Phase 4 — ConfigPanel 完整表單 / 執行結果視覺化 / Kong Plugin Lua codegen
-- [ ] Phase 5 — codegen HTTP service / Kong 部署整合（decK）/ circuit breaker / upstream provider 擴充
+- [x] Phase 5 — codegen HTTP service / Kong 部署整合（decK）/ 前端 codegen 整合
 
 ## 設計決策
 

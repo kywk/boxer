@@ -1189,9 +1189,22 @@ Phase 4（完整功能）✅ 2026-04-08
 ### 待開發
 
 ```
-Phase 5（部署整合 + 進階功能）
-  ├── codegen HTTP service（多租戶、cache）
-  ├── Kong 自動部署整合（decK + Admin API 選項）
-  ├── circuit breaker
-  └── upstream provider 擴充（k8s-service, url）
+Phase 5（部署整合 + 進階功能）✅ 2026-04-08
+  ├── codegen HTTP service（server/server.go）
+  │   ├── POST /api/codegen — golang | kong targets
+  │   ├── SHA256 response cache
+  │   └── CORS middleware + health endpoint
+  ├── Kong 部署整合
+  │   ├── targets/kong/deck.go — 生成 kong.yaml（decK declarative config）
+  │   └── CLI --deck flag
+  └── 前端 codegen 整合
+      ├── ⚙ Go / ⚙ Lua toolbar buttons → call codegen API
+      ├── Codegen result modal + Download
+      └── Vite proxy → codegen service
+
+未來可擴充：
+  - circuit breaker
+  - upstream provider 擴充（k8s-service, url）
+  - A/B testing（同一 trigger 多版本）
+  - 監控儀表板
 ```
