@@ -48,6 +48,21 @@ const mockUpstreamsJson = ref('{}')
 
 // ── Node execution status → CSS class ────────────────
 
+const miniMapColors: Record<string, string> = {
+  'http-call':  '#93bbfd',
+  'condition':  '#fbc97d',
+  'switch':     '#e9a0f5',
+  'transform':  '#b99bf7',
+  'fork':       '#7dd3e8',
+  'join':       '#6dd4c8',
+  'sub-flow':   '#f5a0cc',
+  'response':   '#86e0a3',
+}
+
+function miniMapNodeColor(node: Node): string {
+  return miniMapColors[node.type ?? ''] ?? '#d1d5db'
+}
+
 watch(nodeResults, (results) => {
   for (const node of getNodes.value) {
     const nr = results.get(node.id)
@@ -197,7 +212,7 @@ const selectedNodeResult = computed(() => {
           </div>
         </Panel>
 
-        <MiniMap />
+        <MiniMap :node-color="miniMapNodeColor" />
         <Controls />
         <Background :gap="16" />
       </VueFlow>
