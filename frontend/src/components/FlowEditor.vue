@@ -165,6 +165,19 @@ function confirmImport() {
 
 // ── Test Execution ───────────────────────────────────
 
+function toggleTestPanel() {
+  showTestPanel.value = !showTestPanel.value
+  if (!showTestPanel.value) {
+    // 關閉時清除執行狀態
+    executionResult.value = null
+    executionError.value = null
+    nodeResults.value.clear()
+    for (const node of getNodes.value) {
+      node.class = ''
+    }
+  }
+}
+
 async function handleRunTest() {
   executionResult.value = null
   executionError.value = null
@@ -202,7 +215,7 @@ const selectedNodeResult = computed(() => {
 
         <Panel position="top-right">
           <div class="toolbar">
-            <button @click="showTestPanel = !showTestPanel">
+            <button @click="toggleTestPanel">
               {{ showTestPanel ? '✕ Close Test' : '▶ Test' }}
             </button>
             <button @click="handleExport">Export IR</button>
